@@ -1,8 +1,11 @@
-name: Build & Commit Message Lint
+name: CI + Release
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
+  push:
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -10,57 +13,71 @@ concurrency:
 
 jobs:
   build:
-    name: Build Next.js & Lint Commits
+    name: Build & Lint
     runs-on: ubuntu-latest
-    environment: Preview
-
-    env:
-      GH_PKG_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      # ✅ 拉完整历史（关键！否则 commitlint 会失败）
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # ✅ 固定 Node 版本（避免你刚才的 engine 报错）
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20.20.0
           cache: yarn
 
-      # ✅ 安装依赖（保证 lockfile 一致）
-      - name: Install dependencies
+      - name: Install
         run: yarn install --frozen-lockfile
 
-      # ✅ ESLint
       - name: Lint
         run: yarn exec eslint .
 
-      # ✅ Test（你现在没测试就保留占位）
       - name: Test
         run: echo "No tests configured"
 
-      # ✅ Build
       - name: Build
         run: yarn build
         env:
           NEXT_PUBLIC_API_ENDPOINT: ${{ vars.NEXT_PUBLIC_API_ENDPOINT }}
           NEXT_PUBLIC_AGGRID_LICENSE: ${{ secrets.NEXT_PUBLIC_AGGRID_LICENSE }}
 
-      # ✅ 校验 PR 所有 commits（标准写法）
-      - name: Validate PR commits with commitlint
-        if: github.actor != 'dependabot[bot]'
+      # ✅ PR commit 校验
+      - name: Commitlint (commits)
+        if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
         run: |
           npx commitlint \
             --from ${{ github.event.pull_request.base.sha }} \
-            --to ${{ github.event.pull_request.head.sha }} \
-            --verbose
+            --to ${{ github.event.pull_request.head.sha }}
 
-      # ✅ 校验 PR 标题（推荐必须保留）
-      - name: Validate PR title with commitlint
-        if: github.actor != 'dependabot[bot]'
+      # ✅ PR title 校验（强烈推荐）
+      - name: Commitlint (PR title)
+        if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
         run: |
-          echo "${{ github.event.pull_request.title }}" | npx commitlint --verbose
+          echo "${{ github.event.pull_request.title }}" | npx commitlint
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      - name: Semantic Release
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
