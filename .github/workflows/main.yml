@@ -10,44 +10,57 @@ concurrency:
 
 jobs:
   build:
-    name: Build Next.js & Check commit messages
+    name: Build Next.js & Lint Commits
     runs-on: ubuntu-latest
     environment: Preview
+
     env:
       GH_PKG_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - uses: actions/checkout@v4
+      # ✅ 拉完整历史（关键！否则 commitlint 会失败）
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
+      # ✅ 固定 Node 版本（避免你刚才的 engine 报错）
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.x
+          node-version: 20.20.0
           cache: yarn
 
+      # ✅ 安装依赖（保证 lockfile 一致）
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --frozen-lockfile
 
+      # ✅ ESLint
       - name: Lint
         run: yarn exec eslint .
 
+      # ✅ Test（你现在没测试就保留占位）
       - name: Test
         run: echo "No tests configured"
 
+      # ✅ Build
       - name: Build
         run: yarn build
         env:
           NEXT_PUBLIC_API_ENDPOINT: ${{ vars.NEXT_PUBLIC_API_ENDPOINT }}
           NEXT_PUBLIC_AGGRID_LICENSE: ${{ secrets.NEXT_PUBLIC_AGGRID_LICENSE }}
 
-      - name: Validate current commit (last commit) with commitlint
-        if: github.event_name == 'push' && github.actor != 'dependabot[bot]'
-        run: yarn exec commitlint --from HEAD~1 --to HEAD --verbose
+      # ✅ 校验 PR 所有 commits（标准写法）
+      - name: Validate PR commits with commitlint
+        if: github.actor != 'dependabot[bot]'
+        run: |
+          npx commitlint \
+            --from ${{ github.event.pull_request.base.sha }} \
+            --to ${{ github.event.pull_request.head.sha }} \
+            --verbose
 
-      - name: Validate pull request commits with commitlint
-        if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
-        run: yarn exec commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
-
-      - name: Validate pull request title with commitlint
-        if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
-        run: echo "${{ github.event.pull_request.title }}" | yarn exec commitlint --verbose
+      # ✅ 校验 PR 标题（推荐必须保留）
+      - name: Validate PR title with commitlint
+        if: github.actor != 'dependabot[bot]'
+        run: |
+          echo "${{ github.event.pull_request.title }}" | npx commitlint --verbose
