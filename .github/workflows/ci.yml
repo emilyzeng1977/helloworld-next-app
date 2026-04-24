@@ -1,0 +1,165 @@
+name: CI + Release
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      # ======================
+      # CHECKOUT
+      # ======================
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ======================
+      # SETUP NODE
+      # ======================
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      # ======================
+      # INSTALL
+      # ======================
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      # ======================
+      # LINT
+      # ======================
+      - name: Lint
+        run: yarn exec eslint .
+
+      # ======================
+      # TEST
+      # ======================
+      - name: Test
+        run: echo "No tests configured"
+
+      # ======================
+      # BUILD
+      # ======================
+      - name: Build
+        run: yarn build
+        env:
+          NEXT_PUBLIC_API_ENDPOINT: ${{ vars.NEXT_PUBLIC_API_ENDPOINT }}
+          NEXT_PUBLIC_AGGRID_LICENSE: ${{ secrets.NEXT_PUBLIC_AGGRID_LICENSE }}
+
+      # ======================
+      # COMMITLINT（PR）
+      # ======================
+      - name: Commitlint (commits)
+        if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+        run: |
+          npx commitlint \
+            --from ${{ github.event.pull_request.base.sha }} \
+            --to ${{ github.event.pull_request.head.sha }}
+
+      - name: Commitlint (PR title)
+        if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+        run: |
+          echo "${{ github.event.pull_request.title }}" | npx commitlint
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      # ======================
+      # CHECKOUT
+      # ======================
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ======================
+      # SETUP NODE
+      # ======================
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # ======================
+      # INSTALL
+      # ======================
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      # ======================
+      # SEMANTIC RELEASE
+      # ======================
+      - name: Semantic Release
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ======================
+      # READ VERSION（统一后端方式）
+      # ======================
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(cat version.txt)
+          echo "version=$VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+  docker:
+    name: Build Docker
+    runs-on: ubuntu-latest
+    needs: release
+    if: needs.release.outputs.version != ''
+
+    outputs:
+      image-tag: ${{ needs.release.outputs.version }}
+
+    steps:
+      # ======================
+      # CHECKOUT
+      # ======================
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ======================
+      # BUILD DOCKER
+      # ======================
+      - name: Build Docker image
+        run: |
+          docker build -t frontend:${{ needs.release.outputs.version }} .
+
+      # ======================
+      # SAVE ARTIFACT（可选）
+      # ======================
+      - name: Save Docker image
+        run: docker save frontend:${{ needs.release.outputs.version }} -o image.tar
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-image-${{ needs.release.outputs.version }}
+          path: image.tar
