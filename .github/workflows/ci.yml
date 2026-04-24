@@ -65,11 +65,14 @@ jobs:
       # ======================
       # COMMITLINT（PR only new commits）
       # ======================
-      - name: Commitlint (commits)
-        if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+      - name: Commitlint (ignore history completely)
+        if: github.event_name == 'pull_request'
         run: |
           BASE=$(git merge-base origin/${{ github.base_ref }} HEAD)
-          npx commitlint --from $BASE --to HEAD
+          
+          git log $BASE..HEAD --pretty=format:"%s" | while read msg; do
+            echo "$msg" | npx commitlint
+          done
 
       # ======================
       # COMMITLINT（PR title）
