@@ -1,3 +1,11 @@
+# [1.2.0](https://github.com/emilyzeng1977/helloworld-next-app/compare/v1.1.0...v1.2.0) (2026-04-24)
+
+
+### Features
+
+* **hellowork4:** add CI ([037f4f5](https://github.com/emilyzeng1977/helloworld-next-app/commit/037f4f5d326f389bf67cc7cbbdef35cf438f359b))
+* **hellowork4:** add CI ([daff823](https://github.com/emilyzeng1977/helloworld-next-app/commit/daff823fb3fd8387058e0be080a045fbcd99d132))
+
 # [1.1.0](https://github.com/emilyzeng1977/helloworld-next-app/compare/v1.0.0...v1.1.0) (2026-04-24)
 
 
