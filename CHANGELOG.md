@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/emilyzeng1977/helloworld-next-app/compare/v1.0.0...v1.1.0) (2026-04-24)
+
+
+### Features
+
+* **aip-23:** add CI ([04ef761](https://github.com/emilyzeng1977/helloworld-next-app/commit/04ef7611b03791eb80ac1dc89e1bb880bdf424b3))
+
 # 1.0.0 (2026-04-23)
 
 
