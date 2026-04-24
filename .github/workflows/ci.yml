@@ -6,7 +6,7 @@ on:
 
   push:
     branches:
-      - "**"   # ✅ 所有 branch
+      - "**"   # 所有 branch
 
 permissions:
   contents: write
@@ -63,15 +63,17 @@ jobs:
           NEXT_PUBLIC_AGGRID_LICENSE: ${{ secrets.NEXT_PUBLIC_AGGRID_LICENSE }}
 
       # ======================
-      # COMMITLINT（PR）
+      # COMMITLINT（PR only new commits）
       # ======================
       - name: Commitlint (commits)
         if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
         run: |
-          npx commitlint \
-            --from ${{ github.event.pull_request.base.sha }} \
-            --to ${{ github.event.pull_request.head.sha }}
+          BASE=$(git merge-base origin/${{ github.base_ref }} HEAD)
+          npx commitlint --from $BASE --to HEAD
 
+      # ======================
+      # COMMITLINT（PR title）
+      # ======================
       - name: Commitlint (PR title)
         if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
         run: |
