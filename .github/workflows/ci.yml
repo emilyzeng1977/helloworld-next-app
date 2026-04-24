@@ -128,38 +128,3 @@ jobs:
           VERSION=$(cat version.txt)
           echo "version=$VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-  docker:
-    name: Build Docker
-    runs-on: ubuntu-latest
-    needs: release
-    if: needs.release.outputs.version != ''
-
-    outputs:
-      image-tag: ${{ needs.release.outputs.version }}
-
-    steps:
-      # ======================
-      # CHECKOUT
-      # ======================
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # ======================
-      # BUILD DOCKER
-      # ======================
-      - name: Build Docker image
-        run: |
-          docker build -t frontend:${{ needs.release.outputs.version }} .
-
-      # ======================
-      # SAVE ARTIFACT（可选）
-      # ======================
-      - name: Save Docker image
-        run: docker save frontend:${{ needs.release.outputs.version }} -o image.tar
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-image-${{ needs.release.outputs.version }}
-          path: image.tar
