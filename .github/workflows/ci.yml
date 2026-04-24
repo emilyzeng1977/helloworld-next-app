@@ -3,9 +3,10 @@ name: CI + Release
 on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
+
   push:
     branches:
-      - main
+      - "**"   # ✅ 所有 branch
 
 permissions:
   contents: write
@@ -15,6 +16,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ======================
+  # CI（所有分支 / PR）
+  # ======================
   build:
     name: Build & Lint
     runs-on: ubuntu-latest
@@ -73,11 +77,16 @@ jobs:
         run: |
           echo "${{ github.event.pull_request.title }}" | npx commitlint
 
+
+  # ======================
+  # RELEASE（仅 main）
+  # ======================
   release:
     name: Release
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/main'
+
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
       # ======================
