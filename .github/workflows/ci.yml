@@ -97,7 +97,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [build, commitlint]
+    needs: build
 
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
