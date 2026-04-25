@@ -1,3 +1,10 @@
+## [1.2.5](https://github.com/emilyzeng1977/helloworld-next-app/compare/v1.2.4...v1.2.5) (2026-04-25)
+
+
+### Bug Fixes
+
+* **aip-1:** test ([6db66bc](https://github.com/emilyzeng1977/helloworld-next-app/commit/6db66bc4f54ddf71921ee695496b0066e0ee3844))
+
 ## [1.2.4](https://github.com/emilyzeng1977/helloworld-next-app/compare/v1.2.3...v1.2.4) (2026-04-25)
 
 
