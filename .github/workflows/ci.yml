@@ -95,7 +95,7 @@ jobs:
   # RELEASE（仅 main）
   # ======================
   release:
-    name: Release
+    name: Semantic Release
     runs-on: ubuntu-latest
     needs: build
 
